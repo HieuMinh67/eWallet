@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS public.merchant
 (
     account_id UUID,
 	id UUID primary key,
-    merchantUrl VARCHAR(200)
+    merchantUrl VARCHAR(200),
     name VARCHAR(100) NOT NULL,
     foreign key (account_id)
     references account (id)
