@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS public.merchant
 (
-    account_id UUID,
+    account_id UUID NOT NULL,
 	id UUID PRIMARY KEY,
     url VARCHAR(200),
     name VARCHAR(100) NOT NULL,
