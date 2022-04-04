@@ -1,0 +1,294 @@
+swagger: '2.0'
+info:
+  title: API Title
+  version: '1.0'
+host: api.e-wallet.test
+basePath: /
+schemes:
+  - https
+paths:
+  /merchant/signup:
+    post:
+      description: ''
+      parameters:
+        - in: body
+          name: payload
+          required: true
+          schema:
+            $ref: '#/definitions/MerchantCreateRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/MerchantCreateResponse'
+  /account:
+    post:
+      description: ''
+      parameters:
+        - in: body
+          name: payload
+          schema:
+            $ref: '#/definitions/AccountCreateRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Account'
+  /account/{accountId}/token:
+    get:
+      description: Request a token for Authentication
+      parameters:
+        - in: path
+          name: accountId
+          type: string
+          required: true
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOiJhZWQwOTJjYy1hMjE1LTQ3ZDAtYTJkYS05MjgyMzFkMTc5NDgifQ.G5O2u0foXbrBOjhxRtCNxVnVL2MK-07sKSn_RcNNMlo
+            description: include accountId and accountType
+  /account/{accountId}/topup:
+    post:
+      description: ''
+      parameters:
+        - in: header
+          name: Authentication
+          type: string
+          description: Issuer JWT Token
+        - in: body
+          name: payload
+          schema:
+            $ref: '#/definitions/TopupRequest'
+        - in: path
+          name: accountId
+          type: string
+          required: true
+      responses:
+        '200':
+          description: OK
+  /transaction/create:
+    post:
+      description: ''
+      parameters:
+        - in: header
+          name: Authentication
+          type: string
+          description: Merchant JWT token
+        - in: body
+          name: payload
+          schema:
+            $ref: '#/definitions/TransactionCreateRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Transaction'
+  /transaction/confirm:
+    post:
+      description: ''
+      parameters:
+        - in: header
+          name: Authentication
+          type: string
+          description: Personal JWT token
+        - in: body
+          name: payload
+          schema:
+            type: object
+            properties:
+              transactionId:
+                type: string
+                format: uuid
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                enum:
+                  - SUC
+                  - BNE
+                  - UNK
+              message:
+                type: string
+  /transaction/verify:
+    post:
+      description: ''
+      parameters:
+        - in: header
+          name: Authentication
+          type: string
+          description: Personal JWT token
+        - in: body
+          name: payload
+          schema:
+            type: object
+            properties:
+              transactionId:
+                type: string
+                format: uuid
+      responses:
+        '200':
+          description: OK
+  /transaction/cancel:
+    post:
+      description: ''
+      parameters:
+        - in: header
+          name: Authentication
+          type: string
+          description: Personal JWT token
+        - in: body
+          name: payload
+          schema:
+            type: object
+            properties:
+              transactionId:
+                type: string
+                format: uuid
+      responses:
+        '200':
+          description: OK
+definitions:
+  Account:
+    type: object
+    properties:
+      accountType:
+        $ref: '#/definitions/AccountType'
+      accountId:
+        type: string
+        format: uuid
+        example: 2fa606d2-9b42-41fc-9622-5f5ab2081082
+      balance:
+        type: number
+        format: double
+        example: 0.0
+  AccountCreateRequest:
+    type: object
+    properties:
+      accountType:
+        $ref: '#/definitions/AccountType'
+  MerchantResponse:
+    type: object
+    properties:
+      merchantName:
+        type: string
+        maxLength: 200
+      accountId:
+        type: string
+        format: uuid
+        example: e5cc7ef9-8da1-4ca9-9df5-46cc08c98760
+      merchantId:
+        type: string
+        format: uuid
+        example: dd6de58e-fc7b-4138-bb4a-bd70be05689a
+  MerchantCreateRequest:
+    type: object
+    required:
+      - merchantName
+      - masterMerchantAccountId
+    properties:
+      merchantName:
+        type: string
+        maxLength: 200
+      merchantUrl:
+        type: string
+        maxLength: 200
+  MerchantCreateResponse:
+    type: object
+    properties:
+      merchantName:
+        type: string
+        maxLength: 200
+      accountId:
+        type: string
+        format: uuid
+        example: e5cc7ef9-8da1-4ca9-9df5-46cc08c98760
+      merchantId:
+        type: string
+        format: uuid
+        example: dd6de58e-fc7b-4138-bb4a-bd70be05689a
+      apiKey:
+        type: string
+        format: uuid
+        example: bdd6a784-0da5-45da-a83c-7bbe1d34db35
+      merchantUrl:
+        type: string
+        example: http://localhost:8080
+  TopupRequest:
+    type: object
+    properties:
+      accountId:
+        type: string
+        format: uuid
+        example: 7429f797-a833-4f05-8200-437aaa36b43a
+      amount:
+        type: number
+        format: double
+        example: 1.1
+  AccountResponse:
+    type: object
+    properties:
+      accountId:
+        type: string
+        format: uuid
+        example: 1ab5c9d5-35ff-4a04-8896-33cb6e9527e0
+      accountType:
+        $ref: '#/definitions/AccountType'
+  AccountType:
+    type: string
+    enum:
+      - personal
+      - merchant
+      - issuer
+  Transaction:
+    type: object
+    properties:
+      transactionId:
+        type: string
+        format: uuid
+      merchantId:
+        type: string
+        format: uuid
+      incomeAccount:
+        type: string
+        format: uuid
+      outcomeAccount:
+        type: string
+        format: uuid
+      amount:
+        type: number
+        format: double
+      extraData:
+        type: string
+      signature:
+        type: string
+        format: "md5"
+        example: "225744eba143248ae232bf81d6366b66"
+      status:
+        type: string
+        enum:
+          - INITIALIZED
+          - CONFIRMED
+          - VERIFIED
+          - COMPLETED
+          - CANCELED
+          - EXPIRED
+          - FAILED
+  TransactionCreateRequest:
+    type: object
+    properties:
+      merchantId:
+        type: string
+        format: uuid
+      amount:
+        type: number
+        format: double
+      extraData:
+        type: string
+      signature:
+        type: string
