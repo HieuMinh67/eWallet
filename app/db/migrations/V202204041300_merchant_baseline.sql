@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS public.merchant
 (
-    account_id UUID NOT NULL,
 	id UUID PRIMARY KEY,
-    url VARCHAR(200),
+    account_id UUID NOT NULL,
+    url VARCHAR(200) UNIQUE,
+    api_key UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
     FOREIGN KEY(account_id) REFERENCES account (id)
 );
