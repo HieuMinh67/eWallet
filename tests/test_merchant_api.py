@@ -6,8 +6,8 @@ import requests as requests
 def test_merchant_signup():
     # GIVEN
     payload = json.dumps({
-        "merchantName": "MoMo",
-        "merchantUrl": "momo.vn"
+        "merchantName": "Pillow Store",
+        "merchantUrl": "pillow.net"
     })
     headers = {
         'Content-Type': 'application/json'
@@ -19,10 +19,10 @@ def test_merchant_signup():
     # THEN
     actual_result = response.json()
     expected_result = {
-        "merchantName": "MoMo",
+        "merchantName": "Pillow Store",
         "accountId": actual_result.get("accountId"),
         "merchantId": actual_result.get("merchantId"),
         "apiKey": actual_result.get("apiKey"),
-        "merchantUrl": "momo.vn"
+        "merchantUrl": "pillow.net"
     }
     assert expected_result == actual_result

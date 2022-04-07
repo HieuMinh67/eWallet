@@ -32,5 +32,10 @@ class Server(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         request_body = self.rfile.read(content_length).decode('UTF-8')
         request_body = json.loads(request_body)
-        status_code, response = self.router.execute(path=self.path, request_body=request_body)
+        status_code, response = self.router.execute(path=self.path, request_body=request_body, headers=self.headers)
+        self._build_response(status_code=status_code, content=response)
+
+    def do_GET(self):
+        logging.info("Handle GET request")
+        status_code, response = self.router.execute(path=self.path, request_body=None)
         self._build_response(status_code=status_code, content=response)

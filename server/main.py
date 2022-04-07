@@ -1,9 +1,11 @@
+import logging
 import time
 from http.server import HTTPServer
 
 from server.custom_server import Server
-import logging
 
+# TODO: get config from file
+# TODO: make it OOP (class Config)
 HOST = "localhost"
 PORT = 8000
 

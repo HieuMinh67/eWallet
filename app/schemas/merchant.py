@@ -12,8 +12,6 @@ class MerchantCreateBase:
 
 @dataclass
 class MerchantCreateRequest(MerchantCreateBase):
-    ...
-
     @classmethod
     def from_request(cls, data):
         return cls(

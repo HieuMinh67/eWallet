@@ -1,13 +1,23 @@
 from __future__ import absolute_import
 
+import hashlib
+import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime  # noqa: F401
 from enum import Enum, auto
-from typing import List, Dict  # noqa: F401
+from typing import List, Dict, Optional  # noqa: F401
+
+import psycopg2
+
+from app.db_postgres import session
+from app.entities.account import Account
+from app.entities.merchant import Merchant
+from app.utils import generate_uuid
 
 
-class TransactionType(Enum):
+class TransactionStatus(Enum):
     """
     Initialized: transaction đã được tạo (đã xác định số tiền và account thụ hưởng)
     Confirmed: transaction đã được confirm (đã xác định account thanh toán)
@@ -25,6 +35,7 @@ class TransactionType(Enum):
     CANCELED = auto()
     FAILED = auto()
 
+
 @dataclass
 class Transaction:
     """Transaction - dùng để quản lý 1 phiên giao dịch
@@ -39,15 +50,56 @@ class Transaction:
       e-Wallet, tuy nhiên sẽ có ý nghĩa ở hệ thống của merchant. Ví dụ: nếu merchant thêm thông tin orderId vào
        extraData, e-Wallet sẽ không hiểu orderId này là gì cả, tuy nhiên khi e-Wallet gửi thông tin transaction về cho
         Merchant, merchant sẽ đọc và biết transaction này đang sử lý cho orderId nào để có thể cập nhật trạng thái
-         chính xác đến order đó.
+         chính xác đến order đó. -> OrderID
     :param signature: Là một mã hash md5 (ví dụ: 68b344639ecd4fd9966abda41a59e689) được hash từ payload của Transaction (ngoại trừ signature).
     :param status: The status of this Transaction.  # noqa: E501
     """
-    merchant_id: str
-    income_account: str
-    outcome_account: str
+    merchant: Merchant
+    income_account: Account
     amount: float
     extra_data: str
-    signature: str
-    status: TransactionType
-    transaction_id: uuid.UUID = field(default_factory=lambda: uuid.uuid4)
+    status: TransactionStatus = TransactionStatus.INITIALIZED
+    outcome_account: Optional[Account] = None
+    transaction_id: uuid.UUID = field(default_factory=generate_uuid)
+
+    @property
+    def signature(self):
+        payload = json.dumps({
+            "merchantId": str(self.merchant.merchant_id),
+            "amount": self.amount,
+            "extraData": self.extra_data
+        })
+        return hashlib.md5(payload.encode("UTF-8")).hexdigest()
+
+    def save(self):
+        stmt = """
+            INSERT INTO transaction(id,
+                                    merchant_id,
+                                    extra_data,
+                                    signature,
+                                    amount,
+                                    account_income,
+                                    account_outcome,
+                                    status) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id;
+        """
+        try:
+            db = session.cursor()
+            name_param = (str(self.transaction_id),
+                          str(self.merchant.merchant_id),
+                          self.extra_data,
+                          self.signature,
+                          self.amount,
+                          str(self.merchant.account.account_id),
+                          None if not self.outcome_account else str(self.outcome_account.account_id),
+                          self.status.value)
+            db.execute(stmt, name_param)
+            (result,) = db.fetchone()
+            session.commit()
+        except (Exception, psycopg2.DatabaseError) as e:
+            print(e)
+            logging.warning(e)
+            raise e
+        # TODO: handle error if create fail
+        return result

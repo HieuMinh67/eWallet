@@ -1,9 +1,12 @@
+import logging
 import uuid
 from dataclasses import dataclass, field
+from uuid import UUID
 
 import psycopg2
 
-from app.entities.account import Account
+from app.db_postgres import session
+from app.entities.account import Account, AccountType
 from app.utils import generate_uuid
 
 
@@ -54,3 +57,47 @@ class Merchant:
             print(e)
         # TODO: handle error if create fail
         return result
+
+    @classmethod
+    def get_by_id(cls, merchant_id: UUID) -> 'Merchant':
+        # TODO: research about lazy load
+        stmt = """
+        SELECT account_id,
+               account.type    account_type,
+               account.balance account_balance,
+               merchant.id     merchant_id,
+               merchant.name,
+               merchant.url,
+               merchant.api_key
+        FROM merchant
+                 JOIN account ON merchant.account_id = account.id
+        WHERE merchant.id = %s;
+        """
+        db_response = None
+        try:
+            db = session.cursor()
+            db.execute(stmt, (str(merchant_id),))
+            db_response = db.fetchone()
+        except (Exception, psycopg2.DatabaseError) as e:
+            logging.warning(e)
+
+        # TODO: find better way to do this in case field's order changed
+        if db_response is None:
+            return 500
+
+        if not db_response[4]:
+            return None
+
+        account = Account(
+            account_id=UUID(db_response[0]),
+            account_type=AccountType(int(db_response[1])),
+            balance=float(db_response[2])
+        )
+        merchant = Merchant(
+            merchant_id=UUID(db_response[3]),
+            name=db_response[4],
+            url=db_response[5],
+            api_key=db_response[6],
+            account=account
+        )
+        return merchant

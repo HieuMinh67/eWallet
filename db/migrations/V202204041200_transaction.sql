@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS public.transaction
     account_outcome VARCHAR(100),
     status INTEGER,
     FOREIGN KEY (merchant_id)
-    REFERENCES merchant (id)
+    REFERENCES merchant(id)
 );
