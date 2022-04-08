@@ -142,7 +142,9 @@ class Transaction:
         result = None
         try:
             db = session.cursor()
-            db.execute(stmt, (str(self.outcome_account.account_id), self.status.value, str(self.transaction_id)))
+            db.execute(stmt, (str(self.outcome_account.account_id) if self.outcome_account else None,
+                              self.status.value,
+                              str(self.transaction_id)))
             (result,) = db.fetchone()
             session.commit()
         except (Exception, psycopg2.DatabaseError) as e:

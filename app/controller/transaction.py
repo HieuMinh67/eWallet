@@ -1,4 +1,7 @@
 import asyncio
+import logging
+import threading
+import time
 
 from app.constants import INTERNAL_SERVER_ERROR, BAD_REQUEST
 from app.entities.account import Account
@@ -63,17 +66,21 @@ class TransactionController:
         return cls.change_status(transaction, status=TransactionStatus.CANCELED)
 
     @classmethod
-    async def expire(cls, transaction_id, expired_time: int = 30):
+    def expire(cls, transaction_id, expired_time: int = 15):
         """
 
         :param transaction_id:
         :param expired_time: a given time (in seconds).
         """
-        await asyncio.sleep(expired_time)
-        transaction = Transaction.find_by_id(transaction_id)
-        if transaction and transaction.status != TransactionStatus.COMPLETED:
-            transaction.status = TransactionStatus.EXPIRED
-            transaction.update()
+        time.sleep(expired_time)
+        try:
+            transaction = Transaction.find_by_id(str(transaction_id))
+            if transaction and transaction.status != TransactionStatus.COMPLETED:
+                transaction.status = TransactionStatus.EXPIRED
+                result = transaction.update()
+                logging.info(f"Transaction (id={result.transaction_id}) is expired")
+        except Exception as e:
+            logging.warning(e)
 
     @classmethod
     def change_status(cls, transaction: Transaction, status: TransactionStatus):
@@ -105,7 +112,8 @@ class TransactionController:
         except Exception:
             return INTERNAL_SERVER_ERROR
 
-        asyncio.run(cls.expire(transaction_id=transaction.transaction_id))
+        check_expire_thread = threading.Thread(target=cls.expire, name="Expire transaction", args=(transaction.transaction_id,))
+        check_expire_thread.start()
 
         transaction_usecase_output = TransactionCreateResponse.from_entity(transaction)
         return 200, transaction_usecase_output.to_response()

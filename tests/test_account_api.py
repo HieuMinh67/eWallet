@@ -26,13 +26,14 @@ def test_create_account():
 
 def test_account_top_up(personal_account):
     # GIVEN
+    account_id = str(personal_account.account_id)
     payload = json.dumps({
-        "accountId": str(personal_account.account_id),
+        "accountId": account_id,
         "amount": 1.1
     })
 
     # WHEN
-    response = requests.post(url=f"http://localhost:8000/account/{personal_account}/topup",
+    response = requests.post(url=f"http://localhost:8000/account/{account_id}/topup",
                              headers=default_headers,
                              data=payload)
 
