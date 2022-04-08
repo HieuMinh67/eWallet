@@ -21,7 +21,7 @@ class TransactionController:
             "order_id": order_id,
             "payment_status": payment_status
         })
-        response = requests.post(url=Config.UPDATE_ORDER_API_URL, data=payload, headers=default_headers)
+        requests.post(url=Config.UPDATE_ORDER_API_URL, data=payload, headers=default_headers)
 
     @classmethod
     @token_required

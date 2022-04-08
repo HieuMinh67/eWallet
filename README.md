@@ -1,3 +1,25 @@
+#### ASSIGNMENT 2 - Pham Minh Hieu      
+
+### You must install Python3 and Pip3 to run this project
+    > I suggest using Python 3.10.3 and Pip 22.0.4
+
+### DATABASE: PostgreSQL
+    > create database
+    > create table
+
+### CREATE AND ACTIVATE VITURAL ENVIROMENT
+    > python3 -m venv env
+    > source env/bin/activate
+
+### INSTALL LIBRARY
+    >pip3 install -r requirements.txt
+
+### To run the project:
+    > insert config file
+    > python3 main.py
+
+
+
 # e-Wallet!
 
 e-Wallet là 1 giải pháp thay thế cho các phương pháp thanh toán truyền thống như tiền mặt hoặc dùng thẻ ngân hàng
