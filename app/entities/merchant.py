@@ -38,13 +38,7 @@ class Merchant:
         """
         result = None
         try:
-            conn = psycopg2.connect(
-                host="localhost",
-                database="e_wallet",
-                user="hocvien_dev",
-                password="123456"
-            )
-            db = conn.cursor()
+            db = session.cursor()
             name_param = (str(self.merchant_id),
                           str(self.account.account_id),
                           self.name,
@@ -52,14 +46,14 @@ class Merchant:
                           str(self.api_key))
             db.execute(stmt, name_param)
             (result,) = db.fetchone()
-            conn.commit()
+            session.commit()
         except (Exception, psycopg2.DatabaseError) as e:
-            print(e)
+            logging.warning(e)
         # TODO: handle error if create fail
-        return result
+        return result if result is None else self
 
     @classmethod
-    def get_by_id(cls, merchant_id: UUID) -> 'Merchant':
+    def find_by_id(cls, merchant_id: UUID) -> 'Merchant':
         # TODO: research about lazy load
         stmt = """
         SELECT account_id,

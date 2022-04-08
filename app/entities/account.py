@@ -7,8 +7,8 @@ from uuid import UUID
 import jwt
 import psycopg2
 
+from app import utils
 from app.db_postgres import session
-from app.utils import generate_uuid
 
 JWT_SECRET_KEY = "aslkdmaklmq"  # FIXME: gen key properly
 JWT_ALGORITHM = "HS256"
@@ -36,7 +36,7 @@ class Account:
     """
     account_type: AccountType
     balance: float = 0
-    account_id: UUID = field(default_factory=generate_uuid)
+    account_id: UUID = field(default_factory=utils.generate_uuid)
 
     def to_dict(self):
         return {
@@ -95,16 +95,10 @@ class Account:
         """
         result = None
         try:
-            conn = psycopg2.connect(
-                host="localhost",
-                database="e_wallet",
-                user="hocvien_dev",
-                password="123456"
-            )
-            db = conn.cursor()
+            db = session.cursor()
             db.execute(stmt, (self.account_type.value, self.balance, str(self.account_id)))
             (result,) = db.fetchone()
-            conn.commit()
+            session.commit()
         except (Exception, psycopg2.DatabaseError) as e:
             print(e)
             logging.warning(e)
@@ -122,12 +116,17 @@ class Account:
                           key=JWT_SECRET_KEY,
                           algorithm=JWT_ALGORITHM)
 
-    @staticmethod
-    def decode_token(token: str):
+    @classmethod
+    def decode_token(cls, token: str):
         try:
-            payload = jwt.decode(jwt=token, key=JWT_SECRET_KEY)
+            payload = jwt.decode(jwt=token, key=JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
         except jwt.ExpiredSignatureError:
             return 'Signature expired. Please log in again.'
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            logging.warning(e)
             return 'Invalid token. Please log in again.'
-        return payload['sub']
+        account = None
+        if account_id := payload.get("sub"):
+            account = cls.get_by_id(account_id=account_id)
+        # TODO: add case payload invalid
+        return account

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime  # noqa: F401
 from enum import Enum, auto
 from typing import List, Dict, Optional  # noqa: F401
+from uuid import UUID
 
 import psycopg2
 
@@ -102,4 +103,50 @@ class Transaction:
             logging.warning(e)
             raise e
         # TODO: handle error if create fail
-        return result
+        return None if result is None else self
+
+    @classmethod
+    def find_by_id(cls, transaction_id: str):
+        stmt = """SELECT * FROM transaction WHERE id = %s"""
+        db_response = None
+        try:
+            db = session.cursor()
+            db.execute(stmt, (transaction_id,))
+            db_response = db.fetchone()
+        except (Exception, psycopg2.DatabaseError) as e:
+            logging.warning(e)
+
+        if db_response is None:
+            return None
+
+        merchant = Merchant.find_by_id(db_response[1])
+        outcome_account = Account.get_by_id(db_response[6]) if db_response[6] is not None else None
+
+        return cls(
+            transaction_id=UUID(db_response[0]),
+            merchant=merchant,
+            extra_data=db_response[2],
+            amount=float(db_response[4]),
+            income_account=merchant.account,
+            outcome_account=outcome_account,
+            status=TransactionStatus(db_response[7])
+        )
+
+    def update(self):
+        stmt = """
+            UPDATE transaction
+            SET account_outcome = %s,
+                status = %s
+            WHERE id = %s RETURNING id;
+        """
+        result = None
+        try:
+            db = session.cursor()
+            db.execute(stmt, (str(self.outcome_account.account_id), self.status.value, str(self.transaction_id)))
+            (result,) = db.fetchone()
+            session.commit()
+        except (Exception, psycopg2.DatabaseError) as e:
+            logging.warning(e)
+        # TODO: handle error if create fail
+        # TODO: return Account instead
+        return result if result is None else self

@@ -5,13 +5,18 @@ import pytest
 
 from app.entities.account import Account, AccountType
 from app.entities.merchant import Merchant
-from app.entities.transaction import Transaction
+from app.entities.transaction import Transaction, TransactionStatus
 
 
 @pytest.fixture
 def personal_account():
     # TODO: delete after test
     return Account(account_type=AccountType.personal, balance=1000).save()
+
+
+@pytest.fixture
+def personal_account_token(personal_account):
+    return personal_account.generate_jwt_token()
 
 
 @pytest.fixture
@@ -25,7 +30,7 @@ def extra_data():
 
 
 @pytest.fixture
-def merchant_id(merchant_account):
+def merchant(merchant_account):
     merchant_account.save()
     # TODO: delete after test
     return Merchant(
@@ -41,7 +46,17 @@ def merchant_token(merchant_account):
 
 
 @pytest.fixture
-def transaction():
+def new_transaction(merchant, merchant_account, extra_data):
     return Transaction(
+        merchant=merchant,
+        income_account=merchant_account,
+        amount=50,
+        extra_data=extra_data,
+    ).save()
 
-    )
+
+@pytest.fixture
+def confirmed_transaction(new_transaction, personal_account):
+    new_transaction.status = TransactionStatus.CONFIRMED
+    new_transaction.outcome_account = personal_account
+    return new_transaction.update()

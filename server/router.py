@@ -11,10 +11,10 @@ class Router:
         "/account/{accountId}/topup": AccountController.account_top_up,
         "/account": AccountController.create_account,
         "/merchant/signup": MerchantController.signup,
-        "/transaction/cancel": TransactionController,
-        "/transaction/confirm": TransactionController,
+        "/transaction/cancel": TransactionController.cancel,
+        "/transaction/confirm": TransactionController.confirm,
         "/transaction/create": TransactionController.create,
-        "/transaction/verify": TransactionController,
+        "/transaction/verify": TransactionController.verify,
     }
 
     def execute(self, path, request_body, headers=None):

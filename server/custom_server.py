@@ -30,8 +30,10 @@ class Server(BaseHTTPRequestHandler):
     def do_POST(self):
         logging.info("Handle POST request")
         content_length = int(self.headers['Content-Length'])
+
         request_body = self.rfile.read(content_length).decode('UTF-8')
         request_body = json.loads(request_body)
+
         status_code, response = self.router.execute(path=self.path, request_body=request_body, headers=self.headers)
         self._build_response(status_code=status_code, content=response)
 

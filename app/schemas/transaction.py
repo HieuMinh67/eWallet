@@ -25,7 +25,7 @@ class TransactionCreateRequest(TransactionCreateBase):
         )
 
     def to_entity(self) -> Transaction:
-        merchant = Merchant.get_by_id(UUID(self.merchant_id))
+        merchant = Merchant.find_by_id(UUID(self.merchant_id))
         return Transaction(
             merchant=merchant,
             amount=self.amount,
