@@ -50,12 +50,26 @@ def merchant_token(merchant_account):
 
 
 @pytest.fixture
-def new_transaction(merchant, merchant_account, extra_data):
+def order_id():
+    # order_id_list = (
+    #     "795ec7e8-8b44-45b9-8ee8-7e8d8dc8672b",
+    #     "ceb9abbf-1fae-49c2-b461-5dec265c8632",
+    #     "0a2c7e77-a548-459f-9af0-809ccf6499d4",
+    #     "a66ec385-b53e-44f8-a906-993c43d70b59",
+    #     "8cd5bcdd-4c4b-4be5-a952-cdf6845c4a2c"
+    # )
+    # for order_id in order_id_list:
+    #     yield order_id
+    return "795ec7e8-8b44-45b9-8ee8-7e8d8dc8672b"
+
+
+@pytest.fixture
+def new_transaction(merchant, merchant_account, order_id):
     return Transaction(
         merchant=merchant,
         income_account=merchant_account,
         amount=50,
-        extra_data=extra_data,
+        extra_data=order_id,
     ).save()
 
 

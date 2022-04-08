@@ -47,7 +47,7 @@ def test_get_account_token(personal_account):
     # WHEN
     personal_account_id = str(personal_account.account_id)
     response = requests.get(url=f"http://localhost:8000/account/{personal_account_id}/token")
-    print(response.content)
+
     # THEN
     assert 200 == response.status_code
     assert isinstance(response.content, bytes)
