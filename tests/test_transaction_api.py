@@ -2,7 +2,9 @@ import json
 
 import requests as requests
 
-from app.entities.transaction import TransactionStatus
+from app.constants import CONTENT_TYPE_JSON
+from app.entities.account import Account
+from app.entities.transaction import TransactionStatus, Transaction
 
 
 def test_create_transaction(merchant, merchant_account, merchant_token, extra_data):
@@ -13,7 +15,7 @@ def test_create_transaction(merchant, merchant_account, merchant_token, extra_da
         "extraData": extra_data,
     })
     headers = {
-        'Content-Type': 'application/json',
+        'Content-Type': CONTENT_TYPE_JSON,
         'Authentication': merchant_token
     }
 
@@ -41,7 +43,7 @@ def test_confirm_transaction(new_transaction, personal_account_token):
         "transactionId": str(new_transaction.transaction_id)
     })
     headers = {
-        'Content-Type': 'application/json',
+        'Content-Type': CONTENT_TYPE_JSON,
         'Authentication': personal_account_token
     }
 
@@ -57,14 +59,15 @@ def test_confirm_transaction(new_transaction, personal_account_token):
     assert expected == actual
 
 
-def test_verify_transaction(confirmed_transaction, personal_account_token):
+def test_verify_transaction(confirmed_transaction, personal_account):
+    transaction_id = str(confirmed_transaction.transaction_id)
     # GIVEN
     payload = json.dumps({
-        "transactionId": str(confirmed_transaction.transaction_id)
+        "transactionId": transaction_id
     })
     headers = {
-        'Content-Type': 'application/json',
-        'Authentication': personal_account_token
+        'Content-Type': CONTENT_TYPE_JSON,
+        'Authentication': personal_account.generate_jwt_token()
     }
 
     # WHEN
@@ -73,6 +76,9 @@ def test_verify_transaction(confirmed_transaction, personal_account_token):
     # THEN
     actual = response.status_code
     assert 200 == actual
+    # when_verify_transaction_transaction_status_will_become_verified_and_balance_is_decrease
+    assert Account.get_by_id(personal_account.account_id).balance < personal_account.balance
+    assert Transaction.find_by_id(transaction_id).status == TransactionStatus.VERIFIED
 
 
 def test_cancel_transaction(confirmed_transaction, personal_account_token):
@@ -81,7 +87,7 @@ def test_cancel_transaction(confirmed_transaction, personal_account_token):
         "transactionId": str(confirmed_transaction.transaction_id)
     })
     headers = {
-        'Content-Type': 'application/json',
+        'Content-Type': CONTENT_TYPE_JSON,
         'Authentication': personal_account_token
     }
 
@@ -91,3 +97,23 @@ def test_cancel_transaction(confirmed_transaction, personal_account_token):
     # THEN
     actual = response.status_code
     assert 200 == actual
+
+
+def test_confirm_transaction_with_low_balance(low_balance_account, new_transaction):
+    # GIVEN
+    payload = json.dumps({
+        "transactionId": str(new_transaction.transaction_id)
+    })
+    headers = {
+        'Content-Type': CONTENT_TYPE_JSON,
+        'Authentication': low_balance_account.generate_jwt_token()
+    }
+
+    # WHEN
+    response = requests.post(url="http://localhost:8000/transaction/confirm", headers=headers, data=payload)
+
+    # THEN
+    actual_status = response.status_code
+    actual_text = response.text
+    assert 400 == actual_status
+    assert "Balance is not enough" == actual_text

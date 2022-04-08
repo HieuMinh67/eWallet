@@ -7,6 +7,10 @@ from app.entities.account import Account, AccountType
 from app.entities.merchant import Merchant
 from app.entities.transaction import Transaction, TransactionStatus
 
+default_headers = {
+    "Content-Type": "application/json"
+}
+
 
 @pytest.fixture
 def personal_account():
@@ -60,3 +64,8 @@ def confirmed_transaction(new_transaction, personal_account):
     new_transaction.status = TransactionStatus.CONFIRMED
     new_transaction.outcome_account = personal_account
     return new_transaction.update()
+
+
+@pytest.fixture
+def low_balance_account():
+    return Account(account_type=AccountType.personal).save()

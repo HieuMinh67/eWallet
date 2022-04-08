@@ -2,18 +2,17 @@ import json
 
 import requests as requests
 
+from tests.conftest import default_headers
+
 
 def test_create_account():
     # GIVEN
     payload = json.dumps({
         "accountType": "personal"
     })
-    headers = {
-        'Content-Type': 'application/json'
-    }
 
     # WHEN
-    response = requests.post(url="http://localhost:8000/account", headers=headers, data=payload)
+    response = requests.post(url="http://localhost:8000/account", headers=default_headers, data=payload)
 
     # THEN
     actual_result = response.json()
@@ -31,12 +30,10 @@ def test_account_top_up(personal_account):
         "accountId": str(personal_account.account_id),
         "amount": 1.1
     })
-    headers = {
-        'Content-Type': 'application/json'
-    }
 
     # WHEN
-    response = requests.post(url=f"http://localhost:8000/account/{personal_account}/topup", headers=headers,
+    response = requests.post(url=f"http://localhost:8000/account/{personal_account}/topup",
+                             headers=default_headers,
                              data=payload)
 
     # THEN
@@ -49,7 +46,7 @@ def test_get_account_token(personal_account):
     # WHEN
     personal_account_id = str(personal_account.account_id)
     response = requests.get(url=f"http://localhost:8000/account/{personal_account_id}/token")
-
+    print(response.content)
     # THEN
     assert 200 == response.status_code
     assert isinstance(response.content, bytes)

@@ -1,6 +1,7 @@
 import asyncio
 
 from app.constants import INTERNAL_SERVER_ERROR, BAD_REQUEST
+from app.entities.account import Account
 from app.entities.transaction import Transaction, TransactionStatus
 from app.schemas.transaction import TransactionCreateRequest, TransactionCreateResponse
 from app.utils.auth_helper import token_required
@@ -11,14 +12,17 @@ class TransactionController:
     @token_required
     def confirm(cls, request_data, **kwargs):
         # get account from token
-        confirmed_account = kwargs.get("account")
+        confirmed_account: Account = kwargs.get("account")
 
         # TODO: refactor this (usecase)
         transaction_id = request_data.get("transactionId")
-
         transaction = Transaction.find_by_id(transaction_id)
         if not transaction:
             return BAD_REQUEST
+
+        if confirmed_account.balance < transaction.amount:
+            cls.change_status(transaction, status=TransactionStatus.FAILED)
+            return 400, "Balance is not enough"
 
         transaction.outcome_account = confirmed_account
 
@@ -27,12 +31,22 @@ class TransactionController:
     @classmethod
     @token_required
     def verify(cls, request_data, **kwargs):
+        # get account from token
+        verified_account: Account = kwargs.get("account")
+
         # TODO: refactor this (usecase)
         transaction_id = request_data.get("transactionId")
 
         transaction = Transaction.find_by_id(transaction_id)
         if not transaction:
             return BAD_REQUEST
+
+        if verified_account.balance < transaction.amount:
+            cls.change_status(transaction, status=TransactionStatus.FAILED)
+            return 400, "Balance is not enough"
+
+        verified_account.balance -= transaction.amount
+        verified_account.update()
 
         return cls.change_status(transaction, status=TransactionStatus.VERIFIED)
 
