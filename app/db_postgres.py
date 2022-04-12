@@ -2,32 +2,26 @@ import logging
 
 import psycopg2
 
-# TODO: move this to config file
-DB_HOST = "localhost"
-DATABASE = "e_wallet"
-USER = "hocvien_dev"
-PASSWORD = "123456"
+from app.config import Config
 
 
-class PostgreSQL:
-    db_host = DB_HOST
-    database = DATABASE
-    user = USER
-    password = PASSWORD
-
-    def connect(self):
+class PostgreSQL(Config):
+    def __enter__(self):
         try:
-            conn = psycopg2.connect(
-                host=self.db_host,
-                database=self.database,
-                user=self.user,
-                password=self.password
+            self.connection = psycopg2.connect(
+                host=self.DB_HOST,
+                database=self.DATABASE,
+                user=self.USER,
+                password=self.PASSWORD
             )
-            return conn
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
             raise e
+        return self.connection, self.connection.cursor()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.close()
 
 
 # TODO: find better way to init session
-session = PostgreSQL().connect()
+session = PostgreSQL().__enter__()

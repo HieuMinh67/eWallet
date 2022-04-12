@@ -33,6 +33,16 @@ class MerchantCreateResponse(MerchantCreateBase):
     merchant_id: str
     api_key: str
 
+    @classmethod
+    def from_entity(cls, entity):
+        return cls(
+            merchant_id=str(entity.merchant_id),
+            merchant_name=entity.name,
+            account_id=str(entity.account.account_id),
+            api_key=str(entity.api_key),
+            merchant_url=entity.url
+        )
+
     def to_response(self):
         return {
             "merchantName": self.merchant_name,

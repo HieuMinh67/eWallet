@@ -5,9 +5,9 @@ from uuid import UUID
 
 import psycopg2
 
-from app.db_postgres import session
+from app.db_postgres import PostgreSQL
 from app.entities.account import Account, AccountType
-from app.utils import generate_uuid
+from app.utils import generate_uuid, generate_api_key
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Merchant:
     name: str
     url: str
     account: Account
-    api_key: uuid.UUID = field(default_factory=generate_uuid)
+    api_key: uuid.UUID = field(default_factory=generate_api_key)
     merchant_id: uuid.UUID = field(default_factory=generate_uuid)
 
     def to_usecase_output(self) -> 'MerchantCreateResponse':
@@ -38,15 +38,15 @@ class Merchant:
         """
         result = None
         try:
-            db = session.cursor()
-            name_param = (str(self.merchant_id),
+            with PostgreSQL() as (db, cursor):
+                name_param = (str(self.merchant_id),
                           str(self.account.account_id),
                           self.name,
                           self.url,
                           str(self.api_key))
-            db.execute(stmt, name_param)
-            (result,) = db.fetchone()
-            session.commit()
+                cursor.execute(stmt, name_param)
+                (result,) = cursor.fetchone()
+                db.commit()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
         # TODO: handle error if create fail
@@ -69,9 +69,9 @@ class Merchant:
         """
         db_response = None
         try:
-            db = session.cursor()
-            db.execute(stmt, (str(merchant_id),))
-            db_response = db.fetchone()
+            with PostgreSQL() as (_, cursor):
+                cursor.execute(stmt, (str(merchant_id),))
+                db_response = cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
 

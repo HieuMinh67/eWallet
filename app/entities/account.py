@@ -8,10 +8,8 @@ import jwt
 import psycopg2
 
 from app import utils
-from app.db_postgres import session
-
-JWT_SECRET_KEY = "aslkdmaklmq"  # FIXME: gen key properly
-JWT_ALGORITHM = "HS256"
+from app.config import Config
+from app.db_postgres import PostgreSQL
 
 
 @dataclass
@@ -28,12 +26,7 @@ class AccountType(Enum):
 
 @dataclass
 class Account:
-    """Account - đối tượng để e-Wallet quản lý tài khoản người dùng
-
-    :param account_id: The account_id of this Account.
-    :param account_type: The account_type of this Account.
-    :param balance: The balance of this Account.
-    """
+    """Account - đối tượng để e-Wallet quản lý tài khoản người dùng"""
     account_type: AccountType
     balance: float = 0
     account_id: UUID = field(default_factory=utils.generate_uuid)
@@ -50,26 +43,25 @@ class Account:
         return cls(account_type=AccountType[data.get("accountType")])
 
     @classmethod
+    def from_db_response(cls, row):
+        # TODO: find better way to do this in case field's order changed
+        return cls(
+            account_id=UUID(row[0]),
+            account_type=AccountType(int(row[1])),
+            balance=float(row[2])
+        )
+
+    @classmethod
     def get_by_id(cls, account_id: UUID):
         stmt = """SELECT * FROM account WHERE id = %s"""
-        result = None
         try:
-            conn = psycopg2.connect(
-                host="localhost",
-                database="e_wallet",
-                user="hocvien_dev",
-                password="123456"
-            )
-            db = conn.cursor()
-            db.execute(stmt, (str(account_id),))
-            db_response = db.fetchone()
-            # TODO: find better way to do this in case field's order changed
-            result = cls(account_id=UUID(db_response[0]),
-                         account_type=AccountType(int(db_response[1])),
-                         balance=float(db_response[2]))
+            with PostgreSQL() as (_, cursor):
+                cursor.execute(stmt, (str(account_id),))
+                row = cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
-        return result
+            return None
+        return cls.from_db_response(row)
 
     def save(self):
         stmt = """
@@ -77,10 +69,10 @@ class Account:
         """
         result = None
         try:
-            db = session.cursor()
-            db.execute(stmt, (str(self.account_id), self.account_type.value, self.balance))
-            (result,) = db.fetchone()
-            session.commit()
+            with PostgreSQL() as (db, cursor):
+                cursor.execute(stmt, (str(self.account_id), self.account_type.value, self.balance))
+                (result,) = cursor.fetchone()
+                db.commit()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
         # TODO: handle error if create fail
@@ -95,12 +87,11 @@ class Account:
         """
         result = None
         try:
-            db = session.cursor()
-            db.execute(stmt, (self.account_type.value, self.balance, str(self.account_id)))
-            (result,) = db.fetchone()
-            session.commit()
+            with PostgreSQL() as (db, cursor):
+                cursor.execute(stmt, (self.account_type.value, self.balance, str(self.account_id)))
+                (result,) = cursor.fetchone()
+                db.commit()
         except (Exception, psycopg2.DatabaseError) as e:
-            print(e)
             logging.warning(e)
         # TODO: handle error if create fail
         # TODO: return Account instead
@@ -113,13 +104,13 @@ class Account:
             'sub': str(self.account_id)
         }
         return jwt.encode(payload=payload,
-                          key=JWT_SECRET_KEY,
-                          algorithm=JWT_ALGORITHM)
+                          key=Config.JWT_SECRET_KEY,
+                          algorithm=Config.JWT_ALGORITHM)
 
     @classmethod
     def decode_token(cls, token: str):
         try:
-            payload = jwt.decode(jwt=token, key=JWT_SECRET_KEY, algorithms=JWT_ALGORITHM)
+            payload = jwt.decode(jwt=token, key=Config.JWT_SECRET_KEY, algorithms=Config.JWT_ALGORITHM)
         except jwt.ExpiredSignatureError:
             return 'Signature expired. Please log in again.'
         except jwt.InvalidTokenError as e:

@@ -12,7 +12,7 @@ from uuid import UUID
 
 import psycopg2
 
-from app.db_postgres import session
+from app.db_postgres import PostgreSQL
 from app.entities.account import Account
 from app.entities.merchant import Merchant
 from app.utils import generate_uuid
@@ -86,18 +86,18 @@ class Transaction:
             RETURNING id;
         """
         try:
-            db = session.cursor()
-            name_param = (str(self.transaction_id),
-                          str(self.merchant.merchant_id),
-                          self.extra_data,
-                          self.signature,
-                          self.amount,
-                          str(self.merchant.account.account_id),
-                          None if not self.outcome_account else str(self.outcome_account.account_id),
-                          self.status.value)
-            db.execute(stmt, name_param)
-            (result,) = db.fetchone()
-            session.commit()
+            with PostgreSQL() as (db, cursor):
+                name_param = (str(self.transaction_id),
+                              str(self.merchant.merchant_id),
+                              self.extra_data,
+                              self.signature,
+                              self.amount,
+                              str(self.merchant.account.account_id),
+                              None if not self.outcome_account else str(self.outcome_account.account_id),
+                              self.status.value)
+                cursor.execute(stmt, name_param)
+                (result,) = cursor.fetchone()
+                db.commit()
         except (Exception, psycopg2.DatabaseError) as e:
             print(e)
             logging.warning(e)
@@ -110,9 +110,9 @@ class Transaction:
         stmt = """SELECT * FROM transaction WHERE id = %s"""
         db_response = None
         try:
-            db = session.cursor()
-            db.execute(stmt, (transaction_id,))
-            db_response = db.fetchone()
+            with PostgreSQL() as (_, cursor):
+                cursor.execute(stmt, (transaction_id,))
+                db_response = cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
 
@@ -141,12 +141,12 @@ class Transaction:
         """
         result = None
         try:
-            db = session.cursor()
-            db.execute(stmt, (str(self.outcome_account.account_id) if self.outcome_account else None,
-                              self.status.value,
-                              str(self.transaction_id)))
-            (result,) = db.fetchone()
-            session.commit()
+            with PostgreSQL() as (db, cursor):
+                cursor.execute(stmt, (str(self.outcome_account.account_id) if self.outcome_account else None,
+                                      self.status.value,
+                                      str(self.transaction_id)))
+                (result,) = cursor.fetchone()
+                db.commit()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
         # TODO: handle error if create fail

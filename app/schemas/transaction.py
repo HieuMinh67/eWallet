@@ -15,6 +15,7 @@ class TransactionCreateBase:
 
 @dataclass
 class TransactionCreateRequest(TransactionCreateBase):
+    # TODO: why not use init dunder instead ? Because it requires a lot param(?)
     @classmethod
     def from_request(cls, data):
         return cls(
