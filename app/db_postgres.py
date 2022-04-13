@@ -22,6 +22,3 @@ class PostgreSQL(Config):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.close()
 
-
-# TODO: find better way to init session
-session = PostgreSQL().__enter__()

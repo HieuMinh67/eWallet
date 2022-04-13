@@ -2,12 +2,15 @@ import json
 
 import requests as requests
 
+from app.utils import generate_api_key
+
 
 def test_merchant_signup():
     # GIVEN
+    merchant_url = f"pillow{generate_api_key()}.net"
     payload = json.dumps({
         "merchantName": "Pillow Store",
-        "merchantUrl": "pillow.net"
+        "merchantUrl": merchant_url
     })
     headers = {
         'Content-Type': 'application/json'
@@ -23,6 +26,6 @@ def test_merchant_signup():
         "accountId": actual_result.get("accountId"),
         "merchantId": actual_result.get("merchantId"),
         "apiKey": actual_result.get("apiKey"),
-        "merchantUrl": "pillow.net"
+        "merchantUrl": merchant_url
     }
     assert expected_result == actual_result

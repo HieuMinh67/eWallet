@@ -6,6 +6,7 @@ import pytest
 from app.entities.account import Account, AccountType
 from app.entities.merchant import Merchant
 from app.entities.transaction import Transaction, TransactionStatus
+from app.utils import generate_api_key
 
 default_headers = {
     "Content-Type": "application/json"
@@ -39,7 +40,7 @@ def merchant(merchant_account):
     # TODO: delete after test
     return Merchant(
         name="Fruit Store",
-        url="fruit.org",
+        url=f"fruit{generate_api_key()}.org",
         account=merchant_account
     ).save()
 
@@ -51,16 +52,16 @@ def merchant_token(merchant_account):
 
 @pytest.fixture
 def order_id():
-    # order_id_list = (
-    #     "795ec7e8-8b44-45b9-8ee8-7e8d8dc8672b",
-    #     "ceb9abbf-1fae-49c2-b461-5dec265c8632",
-    #     "0a2c7e77-a548-459f-9af0-809ccf6499d4",
-    #     "a66ec385-b53e-44f8-a906-993c43d70b59",
-    #     "8cd5bcdd-4c4b-4be5-a952-cdf6845c4a2c"
-    # )
-    # for order_id in order_id_list:
-    #     yield order_id
-    return "795ec7e8-8b44-45b9-8ee8-7e8d8dc8672b"
+    order_id_list = (
+        "fded20e6-9516-4e92-8103-56fe853eed55",
+        "9fe01ea8-2762-4bea-aebc-22b203368f80",
+        "c327a240-12c0-4267-9569-a748fd3e6b08",
+        "0713a03f-cb9c-4fe7-87fc-c2f24f2fe349",
+        "0e570617-940a-451f-9f69-a8cea821c6f9",
+        "35d3215d-d4e3-49d4-90a8-cdb7d9b4c95d",
+        "934f67eb-9d37-4b55-b610-aca8eb3efed0",
+    )
+    return random.choice(order_id_list)
 
 
 @pytest.fixture

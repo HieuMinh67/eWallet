@@ -4,3 +4,4 @@ UNAUTHORIZED = (401, "Unauthorized")
 BAD_REQUEST = (400, "Bad Request")
 
 CONTENT_TYPE_JSON = "application/json"
+CONTENT_TYPE_TEXT = "text/plain"

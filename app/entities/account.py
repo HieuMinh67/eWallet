@@ -103,14 +103,22 @@ class Account:
             'iat': datetime.utcnow(),
             'sub': str(self.account_id)
         }
+
+        if self.account_type.value == AccountType.merchant.value:
+            from app.entities.merchant import Merchant
+            merchant = Merchant.find_by_id(_id=self.account_id, id_type="account_id")
+            secret_key = merchant.api_key
+        else:
+            secret_key = Config.JWT_SECRET_KEY
+
         return jwt.encode(payload=payload,
-                          key=Config.JWT_SECRET_KEY,
+                          key=secret_key,
                           algorithm=Config.JWT_ALGORITHM)
 
     @classmethod
-    def decode_token(cls, token: str):
+    def decode_token(cls, token: str, secret_key=Config.JWT_SECRET_KEY):
         try:
-            payload = jwt.decode(jwt=token, key=Config.JWT_SECRET_KEY, algorithms=Config.JWT_ALGORITHM)
+            payload = jwt.decode(jwt=token, key=secret_key, algorithms=Config.JWT_ALGORITHM)
         except jwt.ExpiredSignatureError:
             return 'Signature expired. Please log in again.'
         except jwt.InvalidTokenError as e:

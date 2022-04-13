@@ -32,7 +32,7 @@ class TransactionController:
         # TODO: refactor this (usecase)
         transaction_id = request_data.get("transactionId")
         transaction = Transaction.find_by_id(transaction_id)
-        if not transaction:
+        if not transaction or transaction.status != TransactionStatus.INITIALIZED:
             return BAD_REQUEST
 
         if confirmed_account.balance < transaction.amount:
@@ -53,7 +53,7 @@ class TransactionController:
         transaction_id = request_data.get("transactionId")
 
         transaction = Transaction.find_by_id(transaction_id)
-        if not transaction:
+        if not transaction or transaction.status != TransactionStatus.CONFIRMED:
             return BAD_REQUEST
 
         if verified_account.balance < transaction.amount:
@@ -62,6 +62,10 @@ class TransactionController:
 
         verified_account.balance -= transaction.amount
         verified_account.update()
+
+        merchant_account = transaction.income_account
+        merchant_account.balance += transaction.amount
+        merchant_account.update()
 
         return cls.change_status(transaction, status=TransactionStatus.VERIFIED)
 
@@ -72,13 +76,15 @@ class TransactionController:
         transaction_id = request_data.get("transactionId")
 
         transaction = Transaction.find_by_id(transaction_id)
-        if not transaction:
+
+        # status_allow_to_cancel = (TransactionStatus.CONFIRMED,)
+        if not transaction or transaction.status != TransactionStatus.CONFIRMED:
             return BAD_REQUEST
 
         return cls.change_status(transaction, status=TransactionStatus.CANCELED)
 
     @classmethod
-    def expire(cls, transaction_id, expired_time: int = 15):
+    def expire(cls, transaction_id, expired_time: int = 300):
         """
 
         :param transaction_id:
@@ -87,7 +93,10 @@ class TransactionController:
         time.sleep(expired_time)
         try:
             transaction = Transaction.find_by_id(str(transaction_id))
-            if transaction and transaction.status != TransactionStatus.COMPLETED:
+            allow_to_expired_status = (TransactionStatus.INITIALIZED,
+                                       TransactionStatus.CONFIRMED,
+                                       TransactionStatus.VERIFIED)
+            if transaction and transaction.status in allow_to_expired_status:
                 result, _ = cls.change_status(transaction=transaction, status=TransactionStatus.EXPIRED)
                 if result:
                     logging.info(f"Transaction (id={str(transaction.transaction_id)}) is expired")
@@ -123,10 +132,12 @@ class TransactionController:
         try:
             transaction = transaction_usecase_input.to_entity()
             transaction.save()
-        except Exception:
+        except Exception as e:
+            logging.warning(e)
             return INTERNAL_SERVER_ERROR
 
-        check_expire_thread = threading.Thread(target=cls.expire, name="Expire transaction",
+        check_expire_thread = threading.Thread(target=cls.expire,
+                                               name="Expire transaction",
                                                args=(transaction.transaction_id,))
         check_expire_thread.start()
 

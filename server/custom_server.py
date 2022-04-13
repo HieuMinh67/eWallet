@@ -2,7 +2,7 @@ import json
 import logging
 from http.server import BaseHTTPRequestHandler
 
-from app.constants import CONTENT_TYPE_JSON
+from app.constants import CONTENT_TYPE_JSON, CONTENT_TYPE_TEXT
 from router import Router
 
 
@@ -11,7 +11,7 @@ class Server(BaseHTTPRequestHandler):
 
     def _get_content_type(self, content):
         if isinstance(content, str):
-            return "text/plain"
+            return CONTENT_TYPE_TEXT
         return CONTENT_TYPE_JSON
 
     def _build_response(self, status_code, content):

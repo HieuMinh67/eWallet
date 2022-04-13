@@ -1,6 +1,6 @@
 from app.constants import INTERNAL_SERVER_ERROR
 from app.entities.merchant import Merchant
-from app.schemas.merchant import MerchantCreateRequest
+from app.schemas.merchant import MerchantCreateRequest, MerchantCreateResponse
 
 
 class MerchantController:
@@ -18,5 +18,5 @@ class MerchantController:
         if not create_merchant_result:
             return INTERNAL_SERVER_ERROR
 
-        merchant_usecase_output = merchant.to_usecase_output()
+        merchant_usecase_output = MerchantCreateResponse.from_entity(merchant)
         return 200, merchant_usecase_output.to_response()

@@ -18,7 +18,7 @@ class Merchant:
     name: str
     url: str
     account: Account
-    api_key: uuid.UUID = field(default_factory=generate_api_key)
+    api_key: str = field(default_factory=generate_api_key)
     merchant_id: uuid.UUID = field(default_factory=generate_uuid)
 
     def to_usecase_output(self) -> 'MerchantCreateResponse':
@@ -40,10 +40,10 @@ class Merchant:
         try:
             with PostgreSQL() as (db, cursor):
                 name_param = (str(self.merchant_id),
-                          str(self.account.account_id),
-                          self.name,
-                          self.url,
-                          str(self.api_key))
+                              str(self.account.account_id),
+                              self.name,
+                              self.url,
+                              str(self.api_key))
                 cursor.execute(stmt, name_param)
                 (result,) = cursor.fetchone()
                 db.commit()
@@ -53,9 +53,9 @@ class Merchant:
         return result if result is None else self
 
     @classmethod
-    def find_by_id(cls, merchant_id: UUID) -> 'Merchant':
+    def find_by_id(cls, _id: UUID, id_type="id") -> 'Merchant':
         # TODO: research about lazy load
-        stmt = """
+        stmt = f"""
         SELECT account_id,
                account.type    account_type,
                account.balance account_balance,
@@ -65,12 +65,12 @@ class Merchant:
                merchant.api_key
         FROM merchant
                  JOIN account ON merchant.account_id = account.id
-        WHERE merchant.id = %s;
+        WHERE merchant.{id_type} = %s;
         """
         db_response = None
         try:
             with PostgreSQL() as (_, cursor):
-                cursor.execute(stmt, (str(merchant_id),))
+                cursor.execute(stmt, (str(_id),))
                 db_response = cursor.fetchone()
         except (Exception, psycopg2.DatabaseError) as e:
             logging.warning(e)
